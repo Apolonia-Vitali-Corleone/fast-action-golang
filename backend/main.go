@@ -15,11 +15,11 @@ import (
 func main() {
 	// ========== 1. 初始化数据库 ==========
 	dbConfig := config.DBConfig{
-		Host:     "localhost", // 数据库主机地址
-		Port:     "3306",      // MySQL默认端口
-		User:     "root",      // 数据库用户名（根据实际情况修改）
-		Password: "password",  // 数据库密码（根据实际情况修改）
-		DBName:   "course_system", // 数据库名称
+		Host:     "192.168.233.136", // 数据库主机地址
+		Port:     "3306",            // MySQL默认端口
+		User:     "root",            // 数据库用户名（根据实际情况修改）
+		Password: "1234",            // 数据库密码（根据实际情况修改）
+		DBName:   "course_system",   // 数据库名称
 	}
 
 	// 连接数据库
@@ -34,16 +34,16 @@ func main() {
 	// ========== 3. 配置CORS跨域 ==========
 	// 允许前端（http://localhost:5173）访问后端API
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"}, // 允许的来源（前端地址）
+		AllowOrigins:     []string{"http://localhost:5173"},                   // 允许的来源（前端地址）
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, // 允许的HTTP方法
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"}, // 允许的请求头
-		AllowCredentials: true, // 允许携带Cookie（session需要）
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},        // 允许的请求头
+		AllowCredentials: true,                                                // 允许携带Cookie（session需要）
 	}))
 
 	// ========== 4. 配置Session ==========
 	// 使用Cookie存储session，密钥用于加密cookie
 	store := cookie.NewStore([]byte("secret-key-change-in-production")) // 生产环境请修改密钥
-	r.Use(sessions.Sessions("session", store)) // session名称为"session"
+	r.Use(sessions.Sessions("session", store))                          // session名称为"session"
 
 	// ========== 5. 配置路由 ==========
 	// API基础路径组
@@ -58,10 +58,10 @@ func main() {
 
 			// 需要登录且是学生身份的接口
 			// 使用RequireAuth中间件验证登录，RequireStudent验证学生身份
-			student.GET("/courses/", middleware.RequireAuth(), middleware.RequireStudent(), controllers.GetCourses) // 获取所有课程
+			student.GET("/courses/", middleware.RequireAuth(), middleware.RequireStudent(), controllers.GetCourses)      // 获取所有课程
 			student.GET("/my-courses/", middleware.RequireAuth(), middleware.RequireStudent(), controllers.GetMyCourses) // 获取我的课程
-			student.POST("/enroll/", middleware.RequireAuth(), middleware.RequireStudent(), controllers.EnrollCourse)   // 选课
-			student.POST("/drop/", middleware.RequireAuth(), middleware.RequireStudent(), controllers.DropCourse)       // 退课
+			student.POST("/enroll/", middleware.RequireAuth(), middleware.RequireStudent(), controllers.EnrollCourse)    // 选课
+			student.POST("/drop/", middleware.RequireAuth(), middleware.RequireStudent(), controllers.DropCourse)        // 退课
 		}
 
 		// ---------- 教师相关路由 ----------
@@ -72,9 +72,9 @@ func main() {
 			teacher.POST("/login/", controllers.TeacherLogin)       // 教师登录
 
 			// 需要登录且是教师身份的接口
-			teacher.GET("/courses/", middleware.RequireAuth(), middleware.RequireTeacher(), controllers.GetTeacherCourses) // 获取我的课程
-			teacher.POST("/courses/create/", middleware.RequireAuth(), middleware.RequireTeacher(), controllers.CreateCourse) // 创建课程
-			teacher.DELETE("/courses/:id/delete/", middleware.RequireAuth(), middleware.RequireTeacher(), controllers.DeleteCourse) // 删除课程
+			teacher.GET("/courses/", middleware.RequireAuth(), middleware.RequireTeacher(), controllers.GetTeacherCourses)              // 获取我的课程
+			teacher.POST("/courses/create/", middleware.RequireAuth(), middleware.RequireTeacher(), controllers.CreateCourse)           // 创建课程
+			teacher.DELETE("/courses/:id/delete/", middleware.RequireAuth(), middleware.RequireTeacher(), controllers.DeleteCourse)     // 删除课程
 			teacher.GET("/courses/:id/students/", middleware.RequireAuth(), middleware.RequireTeacher(), controllers.GetCourseStudents) // 获取选课学生
 		}
 
@@ -108,8 +108,8 @@ func main() {
 		api.POST("/logout/", func(c *gin.Context) {
 			// 清空session
 			session := sessions.Default(c)
-			session.Clear()        // 清除所有session数据
-			session.Save()         // 保存更改
+			session.Clear() // 清除所有session数据
+			session.Save()  // 保存更改
 
 			c.JSON(200, gin.H{
 				"message": "已退出",
