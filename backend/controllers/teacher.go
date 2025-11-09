@@ -3,9 +3,9 @@ package controllers
 import (
 	"course-system/config"
 	"course-system/models"
+	"course-system/utils"
 	"net/http"
 
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -89,15 +89,16 @@ func TeacherLogin(c *gin.Context) {
 		return
 	}
 
-	// 创建session
-	session := sessions.Default(c)
-	session.Set("user_id", teacher.ID)
-	session.Set("role", "teacher")
-	session.Set("username", teacher.Username)
-	session.Save()
+	// 生成JWT Token
+	token, err := utils.GenerateToken(teacher.ID, "teacher")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "生成token失败"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "登录成功",
+		"token":   token,
 		"user": gin.H{
 			"id":       teacher.ID,
 			"username": teacher.Username,
@@ -112,8 +113,7 @@ func TeacherLogin(c *gin.Context) {
 // 返回当前教师创建的所有课程
 func GetTeacherCourses(c *gin.Context) {
 	// 获取当前教师ID
-	session := sessions.Default(c)
-	teacherID := session.Get("user_id")
+	teacherID, _ := c.Get("user_id")
 
 	// 查询该教师的所有课程
 	var courses []models.Course
@@ -160,8 +160,8 @@ func CreateCourse(c *gin.Context) {
 	}
 
 	// 获取当前教师ID
-	session := sessions.Default(c)
-	teacherID := session.Get("user_id").(int)
+	teacherIDInterface, _ := c.Get("user_id")
+	teacherID := teacherIDInterface.(int)
 
 	// 创建课程记录
 	course := models.Course{
@@ -195,8 +195,8 @@ func DeleteCourse(c *gin.Context) {
 	courseID := c.Param("id")
 
 	// 获取当前教师ID
-	session := sessions.Default(c)
-	teacherID := session.Get("user_id")
+	teacherIDInterface, _ := c.Get("user_id")
+	teacherID := teacherIDInterface.(int)
 
 	// 查找课程
 	var course models.Course
@@ -206,7 +206,7 @@ func DeleteCourse(c *gin.Context) {
 	}
 
 	// 检查课程是否属于当前教师
-	if course.TeacherID != teacherID.(int) {
+	if course.TeacherID != teacherID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "无权删除此课程"})
 		return
 	}
@@ -233,8 +233,8 @@ func GetCourseStudents(c *gin.Context) {
 	courseID := c.Param("id")
 
 	// 获取当前教师ID
-	session := sessions.Default(c)
-	teacherID := session.Get("user_id")
+	teacherIDInterface, _ := c.Get("user_id")
+	teacherID := teacherIDInterface.(int)
 
 	// 查找课程并验证权限
 	var course models.Course
@@ -244,7 +244,7 @@ func GetCourseStudents(c *gin.Context) {
 	}
 
 	// 检查课程是否属于当前教师
-	if course.TeacherID != teacherID.(int) {
+	if course.TeacherID != teacherID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "无权查看此课程"})
 		return
 	}

@@ -7,8 +7,6 @@ import (
 	"log"
 
 	"github.com/gin-contrib/cors"
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,28 +20,35 @@ func main() {
 		DBName:   "course_system",   // 数据库名称
 	}
 
-	// 连接数据库
+	// 连接数据库（含连接池优化）
 	if err := config.InitDB(dbConfig); err != nil {
 		log.Fatalf("数据库初始化失败: %v", err)
 	}
 
-	// ========== 2. 创建Gin应用 ==========
-	// gin.Default()会自动添加Logger和Recovery中间件
-	r := gin.Default()
+	// ========== 2. 初始化限流器 ==========
+	// 设置为每秒100个请求
+	middleware.InitRateLimiter(100)
 
-	// ========== 3. 配置CORS跨域 ==========
-	// 允许前端（http://localhost:5173）访问后端API
+	// ========== 3. 创建Gin应用（不使用默认中间件） ==========
+	r := gin.New()
+
+	// ========== 4. 配置四层中间件链（按顺序） ==========
+	// 第一层：Recovery - 捕获panic，防止服务崩溃
+	r.Use(middleware.Recovery())
+
+	// 第二层：Logger - 记录每个请求的日志
+	r.Use(middleware.Logger())
+
+	// 第三层：RateLimit - 令牌桶限流
+	r.Use(middleware.RateLimit())
+
+	// 第四层：CORS - 跨域资源共享
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},                   // 允许的来源（前端地址）
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, // 允许的HTTP方法
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},        // 允许的请求头
-		AllowCredentials: true,                                                // 允许携带Cookie（session需要）
+		AllowOrigins:     []string{"http://localhost:5173"},                       // 允许的来源（前端地址）
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},     // 允许的HTTP方法
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"}, // 允许的请求头（包含Authorization）
+		AllowCredentials: true,                                                    // 允许携带凭证
 	}))
-
-	// ========== 4. 配置Session ==========
-	// 使用Cookie存储session，密钥用于加密cookie
-	store := cookie.NewStore([]byte("secret-key-change-in-production")) // 生产环境请修改密钥
-	r.Use(sessions.Sessions("session", store))                          // session名称为"session"
 
 	// ========== 5. 配置路由 ==========
 	// API基础路径组
@@ -79,38 +84,22 @@ func main() {
 		}
 
 		// ---------- 通用路由 ----------
-		// 获取当前登录用户信息
-		api.GET("/current-user/", func(c *gin.Context) {
-			// 获取session
-			session := sessions.Default(c)
-			userID := session.Get("user_id")
-
-			// 如果未登录
-			if userID == nil {
-				c.JSON(401, gin.H{"error": "未登录"})
-				return
-			}
-
-			// 获取用户信息
-			role := session.Get("role")
-			username := session.Get("username")
+		// 获取当前登录用户信息（需要JWT认证）
+		api.GET("/current-user/", middleware.JWTAuth(), func(c *gin.Context) {
+			// 从上下文获取用户信息（由JWT中间件设置）
+			userID, _ := c.Get("user_id")
+			role, _ := c.Get("role")
 
 			c.JSON(200, gin.H{
 				"user": gin.H{
-					"id":       userID,
-					"username": username,
-					"role":     role,
+					"id":   userID,
+					"role": role,
 				},
 			})
 		})
 
-		// 退出登录
+		// 退出登录（JWT无需服务端处理，由前端删除token即可）
 		api.POST("/logout/", func(c *gin.Context) {
-			// 清空session
-			session := sessions.Default(c)
-			session.Clear() // 清除所有session数据
-			session.Save()  // 保存更改
-
 			c.JSON(200, gin.H{
 				"message": "已退出",
 			})
