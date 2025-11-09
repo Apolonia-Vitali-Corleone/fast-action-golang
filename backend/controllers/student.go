@@ -3,9 +3,9 @@ package controllers
 import (
 	"course-system/config"
 	"course-system/models"
+	"course-system/utils"
 	"net/http"
 
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -96,16 +96,17 @@ func StudentLogin(c *gin.Context) {
 		return
 	}
 
-	// 登录成功，创建session
-	session := sessions.Default(c)
-	session.Set("user_id", student.ID)       // 保存用户ID
-	session.Set("role", "student")            // 保存角色
-	session.Set("username", student.Username) // 保存用户名
-	session.Save()                            // 保存session到cookie
+	// 登录成功，生成JWT Token
+	token, err := utils.GenerateToken(student.ID, "student")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "生成token失败"})
+		return
+	}
 
-	// 返回用户信息
+	// 返回token和用户信息
 	c.JSON(http.StatusOK, gin.H{
 		"message": "登录成功",
+		"token":   token,
 		"user": gin.H{
 			"id":       student.ID,
 			"username": student.Username,
@@ -120,8 +121,7 @@ func StudentLogin(c *gin.Context) {
 // 返回课程列表，包含是否已选、是否满员等信息
 func GetCourses(c *gin.Context) {
 	// 获取当前登录学生的ID
-	session := sessions.Default(c)
-	studentID := session.Get("user_id")
+	studentID, _ := c.Get("user_id")
 
 	// 查询所有课程
 	var courses []models.Course
@@ -172,8 +172,7 @@ func GetCourses(c *gin.Context) {
 // 返回当前学生已选的课程列表
 func GetMyCourses(c *gin.Context) {
 	// 获取当前学生ID
-	session := sessions.Default(c)
-	studentID := session.Get("user_id")
+	studentID, _ := c.Get("user_id")
 
 	// 查询该学生的所有选课记录
 	var enrollments []models.Enrollment
@@ -224,8 +223,8 @@ func EnrollCourse(c *gin.Context) {
 	}
 
 	// 获取当前学生ID
-	session := sessions.Default(c)
-	studentID := session.Get("user_id").(int)
+	studentIDInterface, _ := c.Get("user_id")
+	studentID := studentIDInterface.(int)
 
 	// 检查课程是否存在
 	var course models.Course
@@ -279,8 +278,7 @@ func DropCourse(c *gin.Context) {
 	}
 
 	// 获取当前学生ID
-	session := sessions.Default(c)
-	studentID := session.Get("user_id")
+	studentID, _ := c.Get("user_id")
 
 	// 查找选课记录
 	var enrollment models.Enrollment

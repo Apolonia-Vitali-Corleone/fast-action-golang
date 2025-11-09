@@ -1,61 +1,79 @@
 package middleware
 
 import (
+	"course-system/utils"
 	"net/http"
+	"strings"
 
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
-// RequireAuth 认证中间件
-// 用于验证用户是否已登录
-// 从session中读取用户ID和角色信息
-func RequireAuth() gin.HandlerFunc {
+// JWTAuth JWT认证中间件
+// 用于验证用户是否已登录（通过JWT）
+// 从Authorization header中读取token并解析
+func JWTAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 获取当前请求的session
-		session := sessions.Default(c)
-
-		// 从session中获取用户ID
-		userID := session.Get("user_id")
-		if userID == nil {
-			// 如果session中没有用户ID，说明未登录
+		// 从请求头获取Authorization
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "未登录",
-			})
-			c.Abort() // 终止请求处理
-			return
-		}
-
-		// 从session中获取用户角色（student或teacher）
-		role := session.Get("role")
-		if role == nil {
-			// 如果没有角色信息，返回错误
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "角色信息缺失",
+				"error": "未提供认证token",
 			})
 			c.Abort()
 			return
 		}
 
-		// 将用户信息存储到上下文中，供后续处理函数使用
-		c.Set("user_id", userID)
-		c.Set("role", role)
+		// 解析Bearer Token
+		// 格式: "Bearer <token>"
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "token格式错误",
+			})
+			c.Abort()
+			return
+		}
+
+		// 解析token
+		claims, err := utils.ParseToken(parts[1])
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "无效的token",
+			})
+			c.Abort()
+			return
+		}
+
+		// 将用户信息存储到上下文中
+		c.Set("user_id", claims.UserID)
+		c.Set("role", claims.Role)
 
 		// 继续处理请求
 		c.Next()
 	}
 }
 
+// RequireAuth 认证中间件（兼容旧代码，实际使用JWTAuth）
+func RequireAuth() gin.HandlerFunc {
+	return JWTAuth()
+}
+
 // RequireStudent 学生权限中间件
 // 确保当前登录用户是学生
 func RequireStudent() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 先调用基础认证检查
-		session := sessions.Default(c)
-		role := session.Get("role")
+		// 从上下文获取角色
+		roleInterface, exists := c.Get("role")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "未认证",
+			})
+			c.Abort()
+			return
+		}
 
-		// 检查角色是否为student
-		if role != "student" {
+		role, ok := roleInterface.(string)
+		if !ok || role != "student" {
 			c.JSON(http.StatusForbidden, gin.H{
 				"error": "需要学生权限",
 			})
@@ -71,12 +89,18 @@ func RequireStudent() gin.HandlerFunc {
 // 确保当前登录用户是教师
 func RequireTeacher() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 先调用基础认证检查
-		session := sessions.Default(c)
-		role := session.Get("role")
+		// 从上下文获取角色
+		roleInterface, exists := c.Get("role")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "未认证",
+			})
+			c.Abort()
+			return
+		}
 
-		// 检查角色是否为teacher
-		if role != "teacher" {
+		role, ok := roleInterface.(string)
+		if !ok || role != "teacher" {
 			c.JSON(http.StatusForbidden, gin.H{
 				"error": "需要教师权限",
 			})

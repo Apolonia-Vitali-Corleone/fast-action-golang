@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -45,7 +46,31 @@ func InitDB(config DBConfig) error {
 		return err
 	}
 
+	// 获取底层的sql.DB对象以配置连接池
+	sqlDB, err := DB.DB()
+	if err != nil {
+		log.Printf("获取数据库实例失败: %v", err)
+		return err
+	}
+
+	// ========== 连接池配置 ==========
+	// SetMaxIdleConns 设置空闲连接池中的最大连接数
+	// 保持一定数量的空闲连接，避免频繁创建和销毁连接
+	sqlDB.SetMaxIdleConns(10)
+
+	// SetMaxOpenConns 设置打开数据库连接的最大数量
+	// 限制最大连接数，防止数据库过载
+	sqlDB.SetMaxOpenConns(100)
+
+	// SetConnMaxLifetime 设置连接可复用的最大时间
+	// 超过这个时间的连接将被关闭，避免使用过期连接
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
+	// SetConnMaxIdleTime 设置连接空闲的最大时间
+	// 空闲超过这个时间的连接将被关闭，释放资源
+	sqlDB.SetConnMaxIdleTime(10 * time.Minute)
+
 	// 连接成功
-	log.Println("数据库连接成功")
+	log.Println("数据库连接成功，连接池已配置")
 	return nil
 }
