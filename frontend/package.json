@@ -1,0 +1,17 @@
+{
+  "name": "student-management-frontend",
+  "version": "1.0.0",
+  "description": "学生信息管理系统前端",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "vue": "^3.3.4",
+    "axios": "^1.4.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.2.3",
+    "vite": "^4.4.0"
+  }
+}
