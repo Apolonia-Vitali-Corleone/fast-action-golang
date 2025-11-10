@@ -252,6 +252,41 @@ import axios from 'axios'
 const API_BASE = 'http://localhost:8000/api'
 axios.defaults.withCredentials = true  // 支持Session
 
+// 配置Axios请求拦截器 - 自动添加JWT token
+axios.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// 配置Axios响应拦截器 - 处理token刷新
+axios.interceptors.response.use(
+  (response) => {
+    // 检查响应头中是否有新的token
+    const newToken = response.headers['x-new-token']
+    if (newToken) {
+      localStorage.setItem('token', newToken)
+    }
+    return response
+  },
+  (error) => {
+    // 处理401错误 - token过期或无效
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token')
+      currentUser.value = null
+      alert('登录已过期，请重新登录')
+    }
+    return Promise.reject(error)
+  }
+)
+
 // 全局状态
 const currentUser = ref(null)
 const authMode = ref('login')
@@ -286,6 +321,11 @@ const handleLogin = async () => {
       username: authForm.value.username,
       password: authForm.value.password
     })
+
+    // 保存JWT token到localStorage
+    if (res.data.token) {
+      localStorage.setItem('token', res.data.token)
+    }
 
     currentUser.value = res.data.user
     alert('登录成功')
@@ -329,9 +369,14 @@ const handleRegister = async () => {
 const handleLogout = async () => {
   try {
     await axios.post(`${API_BASE}/logout/`)
+    // 清除localStorage中的token
+    localStorage.removeItem('token')
     currentUser.value = null
     alert('已退出')
   } catch (error) {
+    // 即使请求失败也要清除本地token
+    localStorage.removeItem('token')
+    currentUser.value = null
     console.error(error)
   }
 }
@@ -424,7 +469,14 @@ const viewStudents = async (courseId) => {
 // ========== 生命周期 ==========
 
 onMounted(async () => {
-  // 检查是否已登录
+  // 检查localStorage中是否有token
+  const savedToken = localStorage.getItem('token')
+  if (!savedToken) {
+    // 没有token，显示登录页面
+    return
+  }
+
+  // 有token，尝试恢复登录状态
   try {
     const res = await axios.get(`${API_BASE}/current-user/`)
     currentUser.value = res.data.user
@@ -436,7 +488,9 @@ onMounted(async () => {
       fetchTeacherCourses()
     }
   } catch (error) {
-    // 未登录，显示登录页面
+    // token无效或过期，清除它
+    localStorage.removeItem('token')
+    currentUser.value = null
   }
 })
 </script>
