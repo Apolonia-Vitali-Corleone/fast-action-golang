@@ -25,14 +25,28 @@ func main() {
 		log.Fatalf("数据库初始化失败: %v", err)
 	}
 
-	// ========== 2. 初始化限流器 ==========
-	// 设置为每秒100个请求
-	middleware.InitRateLimiter(100)
+	// ========== 2. 初始化Redis（用于分布式锁和缓存） ==========
+	redisConfig := config.RedisConfig{
+		Host:     "192.168.233.136", // Redis服务器地址（根据实际情况修改）
+		Port:     "6379",            // Redis默认端口
+		Password: "",                // Redis密码（无密码则为空字符串）
+		DB:       0,                 // 使用0号数据库
+	}
 
-	// ========== 3. 创建Gin应用（不使用默认中间件） ==========
+	// 连接Redis（含连接池优化）
+	if err := config.InitRedis(redisConfig); err != nil {
+		log.Fatalf("Redis初始化失败: %v", err)
+	}
+
+	// ========== 3. 初始化限流器 ==========
+	// 设置为每秒1000个请求（QPS=1000）
+	// 支持500+并发用户同时选课
+	middleware.InitRateLimiter(1000)
+
+	// ========== 4. 创建Gin应用（不使用默认中间件） ==========
 	r := gin.New()
 
-	// ========== 4. 配置四层中间件链（按顺序） ==========
+	// ========== 5. 配置四层中间件链（按顺序） ==========
 	// 第一层：Recovery - 捕获panic，防止服务崩溃
 	r.Use(middleware.Recovery())
 
@@ -44,13 +58,14 @@ func main() {
 
 	// 第四层：CORS - 跨域资源共享
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},                       // 允许的来源（前端地址）
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},     // 允许的HTTP方法
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"}, // 允许的请求头（包含Authorization）
-		AllowCredentials: true,                                                    // 允许携带凭证
+		AllowOrigins:     []string{"http://localhost:5173"},                              // 允许的来源（前端地址）
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},            // 允许的HTTP方法
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},  // 允许的请求头（包含Authorization）
+		ExposeHeaders:    []string{"X-New-Token"},                                        // 允许前端读取的响应头（用于Token自动刷新）
+		AllowCredentials: true,                                                           // 允许携带凭证
 	}))
 
-	// ========== 5. 配置路由 ==========
+	// ========== 6. 配置路由 ==========
 	// API基础路径组
 	api := r.Group("/api")
 	{
@@ -106,7 +121,7 @@ func main() {
 		})
 	}
 
-	// ========== 6. 启动服务器 ==========
+	// ========== 7. 启动服务器 ==========
 	// 监听8000端口
 	log.Println("服务器启动在 http://localhost:8000")
 	if err := r.Run(":8000"); err != nil {

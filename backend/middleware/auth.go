@@ -4,16 +4,23 @@ import (
 	"course-system/utils"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-// JWTAuth JWT认证中间件
-// 用于验证用户是否已登录（通过JWT）
-// 从Authorization header中读取token并解析
+// JWTAuth JWT认证中间件（含Token自动刷新）
+// 功能:
+//  1. 验证用户是否已登录（通过JWT）
+//  2. 自动刷新即将过期的Token（剩余有效期<2小时时）
+//  3. 通过响应头 X-New-Token 返回新Token
+//
+// 前端需要处理：
+//   - 检查响应头中是否有 X-New-Token
+//   - 如果有，则更新本地存储的Token
 func JWTAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 从请求头获取Authorization
+		// ========== 步骤1: 从请求头获取Token ==========
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
@@ -23,7 +30,7 @@ func JWTAuth() gin.HandlerFunc {
 			return
 		}
 
-		// 解析Bearer Token
+		// ========== 步骤2: 解析Bearer Token ==========
 		// 格式: "Bearer <token>"
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || parts[0] != "Bearer" {
@@ -34,8 +41,10 @@ func JWTAuth() gin.HandlerFunc {
 			return
 		}
 
-		// 解析token
-		claims, err := utils.ParseToken(parts[1])
+		tokenString := parts[1]
+
+		// ========== 步骤3: 验证Token ==========
+		claims, err := utils.ParseToken(tokenString)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error": "无效的token",
@@ -44,11 +53,25 @@ func JWTAuth() gin.HandlerFunc {
 			return
 		}
 
-		// 将用户信息存储到上下文中
+		// ========== 步骤4: 将用户信息存储到上下文中 ==========
 		c.Set("user_id", claims.UserID)
 		c.Set("role", claims.Role)
 
-		// 继续处理请求
+		// ========== 步骤5: 检查是否需要刷新Token ==========
+		// 如果Token剩余有效期 < 2小时，则自动刷新
+		refreshThreshold := 2 * time.Hour
+		if utils.ShouldRefreshToken(claims, refreshThreshold) {
+			// 生成新Token
+			newToken, err := utils.RefreshToken(claims)
+			if err == nil {
+				// 通过响应头返回新Token
+				// 前端应监听此响应头并更新本地存储的Token
+				c.Header("X-New-Token", newToken)
+			}
+			// 即使刷新失败也不影响当前请求（因为旧Token仍然有效）
+		}
+
+		// ========== 步骤6: 继续处理请求 ==========
 		c.Next()
 	}
 }
