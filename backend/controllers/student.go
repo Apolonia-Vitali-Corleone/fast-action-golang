@@ -152,7 +152,7 @@ func GetCourses(c *gin.Context) {
 	}
 
 	// 构建返回的课程列表
-	var result []gin.H
+	result := []gin.H{}
 	for _, course := range courses {
 		// 查询该课程的教师信息
 		var teacher models.Teacher
@@ -201,7 +201,7 @@ func GetMyCourses(c *gin.Context) {
 	}
 
 	// 构建课程详情列表
-	var result []gin.H
+	result := []gin.H{}
 	for _, enrollment := range enrollments {
 		// 查询课程信息
 		var course models.Course

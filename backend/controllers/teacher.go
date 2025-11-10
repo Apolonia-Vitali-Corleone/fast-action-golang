@@ -123,7 +123,7 @@ func GetTeacherCourses(c *gin.Context) {
 	}
 
 	// 构建课程列表，包含选课人数
-	var result []gin.H
+	result := []gin.H{}
 	for _, course := range courses {
 		// 统计选课人数
 		var enrolledCount int64
@@ -254,7 +254,7 @@ func GetCourseStudents(c *gin.Context) {
 	config.DB.Where("course_id = ?", courseID).Find(&enrollments)
 
 	// 构建学生列表
-	var students []gin.H
+	students := []gin.H{}
 	for _, enrollment := range enrollments {
 		// 查询学生信息
 		var student models.Student

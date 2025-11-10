@@ -386,7 +386,7 @@ const handleLogout = async () => {
 const fetchAvailableCourses = async () => {
   try {
     const res = await axios.get(`${API_BASE}/student/courses/`)
-    courses.value = res.data.courses
+    courses.value = res.data.courses || []
   } catch (error) {
     alert(error.response?.data?.error || '获取课程失败')
   }
@@ -395,7 +395,7 @@ const fetchAvailableCourses = async () => {
 const fetchMyCourses = async () => {
   try {
     const res = await axios.get(`${API_BASE}/student/my-courses/`)
-    myCourses.value = res.data.courses
+    myCourses.value = res.data.courses || []
   } catch (error) {
     alert(error.response?.data?.error || '获取我的课程失败')
   }
@@ -427,7 +427,7 @@ const dropCourse = async (courseId) => {
 const fetchTeacherCourses = async () => {
   try {
     const res = await axios.get(`${API_BASE}/teacher/courses/`)
-    teacherCourses.value = res.data.courses
+    teacherCourses.value = res.data.courses || []
   } catch (error) {
     alert(error.response?.data?.error || '获取课程失败')
   }
@@ -458,8 +458,11 @@ const deleteCourse = async (courseId) => {
 const viewStudents = async (courseId) => {
   try {
     const res = await axios.get(`${API_BASE}/teacher/courses/${courseId}/students/`)
-    courseStudents.value = res.data
-    currentCourse.value = res.data.course
+    courseStudents.value = {
+      students: res.data.students || [],
+      total: res.data.total || 0
+    }
+    currentCourse.value = res.data.course || {}
     showStudentsModal.value = true
   } catch (error) {
     alert(error.response?.data?.error || '获取学生列表失败')
