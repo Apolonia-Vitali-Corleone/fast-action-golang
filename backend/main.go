@@ -58,11 +58,11 @@ func main() {
 
 	// 第四层：CORS - 跨域资源共享
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},                              // 允许的来源（前端地址）
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},            // 允许的HTTP方法
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},  // 允许的请求头（包含Authorization）
-		ExposeHeaders:    []string{"X-New-Token"},                                        // 允许前端读取的响应头（用于Token自动刷新）
-		AllowCredentials: true,                                                           // 允许携带凭证
+		AllowOrigins:     []string{"http://localhost:5173"},                             // 允许的来源（前端地址）
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},           // 允许的HTTP方法
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"}, // 允许的请求头（包含Authorization）
+		ExposeHeaders:    []string{"X-New-Token"},                                       // 允许前端读取的响应头（用于Token自动刷新）
+		AllowCredentials: true,                                                          // 允许携带凭证
 	}))
 
 	// ========== 6. 配置路由 ==========

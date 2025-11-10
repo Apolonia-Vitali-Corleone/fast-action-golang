@@ -172,12 +172,12 @@ func GetCourses(c *gin.Context) {
 			"id":          course.ID,
 			"name":        course.Name,
 			"description": course.Description,
-			"teacher":     teacher.Username,  // 教师名称
+			"teacher":     teacher.Username, // 教师名称
 			"teacher_id":  course.TeacherID,
-			"capacity":    course.Capacity,   // 课程容量
-			"enrolled":    enrolledCount,     // 已选人数（直接使用字段，避免COUNT）
-			"is_enrolled": isEnrolled,        // 是否已选
-			"is_full":     isFull,            // 是否已满
+			"capacity":    course.Capacity, // 课程容量
+			"enrolled":    enrolledCount,   // 已选人数（直接使用字段，避免COUNT）
+			"is_enrolled": isEnrolled,      // 是否已选
+			"is_full":     isFull,          // 是否已满
 		})
 	}
 
@@ -288,7 +288,7 @@ func EnrollCourse(c *gin.Context) {
 	defer cancel()
 
 	// 使用高阶函数WithLock自动处理加锁和解锁
-	err := utils.WithLock(ctx, lockKey, 10*time.Second, func() error {
+	err = utils.WithLock(ctx, lockKey, 10*time.Second, func() error {
 		// ============ 步骤3: 在锁保护下执行选课逻辑 ============
 
 		// 开启数据库事务（保证数据一致性）
