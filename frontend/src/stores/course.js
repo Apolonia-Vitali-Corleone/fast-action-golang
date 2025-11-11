@@ -20,6 +20,8 @@ export const useCourseStore = defineStore('course', () => {
   const currentCourse = ref({}) // 当前查看的课程
   const courseStudents = ref({ students: [], total: 0 }) // 课程学生
   const showStudentsDialog = ref(false) // 学生列表弹窗
+  const showCourseDialog = ref(false) // 课程表单弹窗
+  const isEditMode = ref(false) // 是否为编辑模式
 
   // ========== 学生方法 ==========
 
@@ -100,6 +102,37 @@ export const useCourseStore = defineStore('course', () => {
   }
 
   /**
+   * 打开创建课程对话框
+   */
+  const openCreateDialog = () => {
+    isEditMode.value = false
+    courseForm.value = { name: '', description: '', capacity: 50 }
+    showCourseDialog.value = true
+  }
+
+  /**
+   * 打开编辑课程对话框
+   */
+  const openEditDialog = (course) => {
+    isEditMode.value = true
+    courseForm.value = {
+      id: course.id,
+      name: course.name,
+      description: course.description,
+      capacity: course.capacity
+    }
+    showCourseDialog.value = true
+  }
+
+  /**
+   * 关闭课程表单对话框
+   */
+  const closeCourseDialog = () => {
+    showCourseDialog.value = false
+    courseForm.value = { name: '', description: '', capacity: 50 }
+  }
+
+  /**
    * 创建课程
    */
   const createCourse = async () => {
@@ -107,10 +140,33 @@ export const useCourseStore = defineStore('course', () => {
       await axios.post(`${API_BASE}/teacher/courses/create/`, courseForm.value)
       ElMessage.success('创建成功')
       courseForm.value = { name: '', description: '', capacity: 50 }
+      showCourseDialog.value = false
       await fetchTeacherCourses()
       return true
     } catch (error) {
       ElMessage.error(error.response?.data?.error || '创建失败')
+      return false
+    }
+  }
+
+  /**
+   * 修改课程
+   */
+  const updateCourse = async () => {
+    try {
+      const courseId = courseForm.value.id
+      await axios.put(`${API_BASE}/teacher/courses/${courseId}/update/`, {
+        name: courseForm.value.name,
+        description: courseForm.value.description,
+        capacity: courseForm.value.capacity
+      })
+      ElMessage.success('修改成功')
+      courseForm.value = { name: '', description: '', capacity: 50 }
+      showCourseDialog.value = false
+      await fetchTeacherCourses()
+      return true
+    } catch (error) {
+      ElMessage.error(error.response?.data?.error || '修改失败')
       return false
     }
   }
@@ -174,6 +230,8 @@ export const useCourseStore = defineStore('course', () => {
     currentCourse,
     courseStudents,
     showStudentsDialog,
+    showCourseDialog,
+    isEditMode,
     // 学生方法
     fetchAvailableCourses,
     fetchMyCourses,
@@ -182,8 +240,12 @@ export const useCourseStore = defineStore('course', () => {
     // 教师方法
     fetchTeacherCourses,
     createCourse,
+    updateCourse,
     deleteCourse,
     viewStudents,
-    closeStudentsDialog
+    closeStudentsDialog,
+    openCreateDialog,
+    openEditDialog,
+    closeCourseDialog
   }
 })

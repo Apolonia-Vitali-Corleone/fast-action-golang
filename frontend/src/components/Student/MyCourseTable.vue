@@ -49,12 +49,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
 import { useCourseStore } from '@/stores/course'
 
 const courseStore = useCourseStore()
 const loading = ref(false)
+let refreshTimer = null
 
 const handleRefresh = async () => {
   loading.value = true
@@ -69,8 +70,22 @@ const handleDrop = (courseId) => {
   courseStore.dropCourse(courseId)
 }
 
+// 自动刷新功能
+const startAutoRefresh = () => {
+  refreshTimer = setInterval(() => {
+    courseStore.fetchMyCourses()
+  }, 30000) // 每30秒刷新一次
+}
+
 onMounted(() => {
   courseStore.fetchMyCourses()
+  startAutoRefresh()
+})
+
+onUnmounted(() => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+  }
 })
 </script>
 

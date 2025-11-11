@@ -1,9 +1,11 @@
 <template>
-  <el-card class="form-card" shadow="hover">
-    <template #header>
-      <h2>创建新课程</h2>
-    </template>
-
+  <el-dialog
+    :model-value="courseStore.showCourseDialog"
+    :title="courseStore.isEditMode ? '编辑课程' : '创建新课程'"
+    width="500px"
+    :close-on-click-modal="false"
+    @close="handleClose"
+  >
     <el-form
       ref="formRef"
       :model="courseStore.courseForm"
@@ -39,18 +41,19 @@
           class="capacity-input"
         />
       </el-form-item>
+    </el-form>
 
+    <template #footer>
+      <el-button @click="handleClose">取消</el-button>
       <el-button
         type="primary"
-        size="large"
-        class="submit-btn"
         :loading="loading"
         @click="handleSubmit"
       >
-        创建课程
+        {{ courseStore.isEditMode ? '保存' : '创建' }}
       </el-button>
-    </el-form>
-  </el-card>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -79,44 +82,30 @@ const handleSubmit = async () => {
     if (valid) {
       loading.value = true
       try {
-        const success = await courseStore.createCourse()
-        if (success) {
-          formRef.value.resetFields()
+        if (courseStore.isEditMode) {
+          await courseStore.updateCourse()
+        } else {
+          await courseStore.createCourse()
         }
+        formRef.value.resetFields()
       } finally {
         loading.value = false
       }
     }
   })
 }
+
+const handleClose = () => {
+  if (formRef.value) {
+    formRef.value.resetFields()
+  }
+  courseStore.closeCourseDialog()
+}
 </script>
 
 <style scoped>
-.form-card {
-  border-radius: 16px;
-  margin-bottom: 32px;
-}
-
-.form-card :deep(.el-card__header) {
-  background: linear-gradient(135deg, rgba(0, 175, 240, 0.05) 0%, rgba(102, 126, 234, 0.05) 100%);
-}
-
-.form-card h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: #1c1c1c;
-}
-
 .capacity-input {
   width: 100%;
-}
-
-.submit-btn {
-  width: 100%;
-  margin-top: 10px;
-  border-radius: 12px;
-  font-weight: 600;
 }
 
 :deep(.el-input__wrapper),
