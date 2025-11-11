@@ -2,7 +2,7 @@
   <el-dialog
     :model-value="courseStore.showCourseDialog"
     :title="courseStore.isEditMode ? '编辑课程' : '创建新课程'"
-    width="500px"
+    width="700px"
     :close-on-click-modal="false"
     @close="handleClose"
   >
@@ -41,6 +41,111 @@
           class="capacity-input"
         />
       </el-form-item>
+
+      <el-divider>课程时间安排</el-divider>
+
+      <div class="schedules-container">
+        <div
+          v-for="(schedule, index) in courseStore.courseForm.schedules"
+          :key="index"
+          class="schedule-item"
+        >
+          <div class="schedule-header">
+            <span class="schedule-title">时间段 {{ index + 1 }}</span>
+            <el-button
+              type="danger"
+              size="small"
+              text
+              @click="removeSchedule(index)"
+            >
+              删除
+            </el-button>
+          </div>
+
+          <el-row :gutter="12">
+            <el-col :span="8">
+              <el-form-item label="星期" :prop="`schedules.${index}.day_of_week`">
+                <el-select
+                  v-model="schedule.day_of_week"
+                  placeholder="选择星期"
+                  size="large"
+                  class="full-width"
+                >
+                  <el-option label="周一" :value="1" />
+                  <el-option label="周二" :value="2" />
+                  <el-option label="周三" :value="3" />
+                  <el-option label="周四" :value="4" />
+                  <el-option label="周五" :value="5" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="8">
+              <el-form-item label="节次" :prop="`schedules.${index}.time_slot`">
+                <el-select
+                  v-model="schedule.time_slot"
+                  placeholder="选择节次"
+                  size="large"
+                  class="full-width"
+                >
+                  <el-option label="上午第一节" :value="1" />
+                  <el-option label="上午第二节" :value="2" />
+                  <el-option label="下午第一节" :value="3" />
+                  <el-option label="下午第二节" :value="4" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="8">
+              <el-form-item label="教室" :prop="`schedules.${index}.classroom`">
+                <el-input
+                  v-model="schedule.classroom"
+                  placeholder="如: A101"
+                  size="large"
+                  clearable
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row :gutter="12">
+            <el-col :span="12">
+              <el-form-item label="开始周次" :prop="`schedules.${index}.start_week`">
+                <el-input-number
+                  v-model="schedule.start_week"
+                  :min="1"
+                  :max="20"
+                  size="large"
+                  controls-position="right"
+                  class="full-width"
+                />
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="12">
+              <el-form-item label="结束周次" :prop="`schedules.${index}.end_week`">
+                <el-input-number
+                  v-model="schedule.end_week"
+                  :min="1"
+                  :max="20"
+                  size="large"
+                  controls-position="right"
+                  class="full-width"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </div>
+
+        <el-button
+          type="primary"
+          plain
+          @click="addSchedule"
+          class="add-schedule-btn"
+        >
+          + 添加上课时间
+        </el-button>
+      </div>
     </el-form>
 
     <template #footer>
@@ -59,6 +164,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useCourseStore } from '@/stores/course'
+import { ElMessage } from 'element-plus'
 
 const courseStore = useCourseStore()
 const formRef = ref(null)
@@ -75,11 +181,60 @@ const rules = {
   ]
 }
 
+const addSchedule = () => {
+  courseStore.courseForm.schedules.push({
+    day_of_week: null,
+    time_slot: null,
+    start_week: 1,
+    end_week: 16,
+    classroom: ''
+  })
+}
+
+const removeSchedule = (index) => {
+  courseStore.courseForm.schedules.splice(index, 1)
+}
+
+const validateSchedules = () => {
+  const schedules = courseStore.courseForm.schedules
+
+  for (let i = 0; i < schedules.length; i++) {
+    const schedule = schedules[i]
+
+    if (!schedule.day_of_week) {
+      ElMessage.error(`时间段 ${i + 1}: 请选择星期`)
+      return false
+    }
+
+    if (!schedule.time_slot) {
+      ElMessage.error(`时间段 ${i + 1}: 请选择节次`)
+      return false
+    }
+
+    if (!schedule.start_week || !schedule.end_week) {
+      ElMessage.error(`时间段 ${i + 1}: 请设置周次范围`)
+      return false
+    }
+
+    if (schedule.end_week < schedule.start_week) {
+      ElMessage.error(`时间段 ${i + 1}: 结束周次不能小于开始周次`)
+      return false
+    }
+  }
+
+  return true
+}
+
 const handleSubmit = async () => {
   if (!formRef.value) return
 
   await formRef.value.validate(async (valid) => {
     if (valid) {
+      // 验证课程时间
+      if (!validateSchedules()) {
+        return
+      }
+
       loading.value = true
       try {
         if (courseStore.isEditMode) {
@@ -104,8 +259,37 @@ const handleClose = () => {
 </script>
 
 <style scoped>
-.capacity-input {
+.capacity-input,
+.full-width {
   width: 100%;
+}
+
+.schedules-container {
+  margin-top: 16px;
+}
+
+.schedule-item {
+  background: #f5f7fa;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.schedule-title {
+  font-weight: 600;
+  color: #303133;
+}
+
+.add-schedule-btn {
+  width: 100%;
+  margin-top: 8px;
 }
 
 :deep(.el-input__wrapper),

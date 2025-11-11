@@ -68,12 +68,14 @@ func (Enrollment) TableName() string {
 
 // CourseSchedule 课程时间表模型
 // 用于记录课程的上课时间，支持选课时间冲突检测
+// TimeSlot: 1=上午第一节, 2=上午第二节, 3=下午第一节, 4=下午第二节
 type CourseSchedule struct {
 	ID        int    `gorm:"primaryKey;autoIncrement" json:"id"`       // 主键，自增
 	CourseID  int    `gorm:"index" json:"course_id"`                   // 课程ID，建立索引
-	DayOfWeek int    `gorm:"type:tinyint" json:"day_of_week"`          // 星期几（1-7，1表示周一）
-	StartTime string `gorm:"type:time" json:"start_time"`              // 开始时间（HH:MM:SS格式）
-	EndTime   string `gorm:"type:time" json:"end_time"`                // 结束时间（HH:MM:SS格式）
+	DayOfWeek int    `gorm:"type:tinyint" json:"day_of_week"`          // 星期几（1-5，1表示周一，5表示周五）
+	TimeSlot  int    `gorm:"type:tinyint" json:"time_slot"`            // 节次（1-4: 1=上午一节, 2=上午二节, 3=下午一节, 4=下午二节）
+	StartWeek int    `gorm:"type:tinyint" json:"start_week"`           // 开始周次（如第1周）
+	EndWeek   int    `gorm:"type:tinyint" json:"end_week"`             // 结束周次（如第16周）
 	Classroom string `gorm:"type:varchar(100)" json:"classroom"`       // 教室
 }
 

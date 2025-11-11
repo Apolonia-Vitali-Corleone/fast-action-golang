@@ -18,6 +18,9 @@
     <!-- Tabs切换 -->
     <el-card class="main-card" shadow="never">
       <el-tabs v-model="activeTab" class="view-tabs" stretch>
+        <el-tab-pane label="课程表" name="schedule">
+          <ScheduleTable />
+        </el-tab-pane>
         <el-tab-pane label="可选课程" name="courses">
           <CourseList />
         </el-tab-pane>
@@ -34,9 +37,10 @@ import { ref } from 'vue'
 import { useUserStore } from '@/stores/user'
 import CourseList from '@/components/Student/CourseList.vue'
 import MyCourseTable from '@/components/Student/MyCourseTable.vue'
+import ScheduleTable from '@/components/Student/ScheduleTable.vue'
 
 const userStore = useUserStore()
-const activeTab = ref('courses')
+const activeTab = ref('schedule')
 
 const handleLogout = async () => {
   await userStore.logout()
