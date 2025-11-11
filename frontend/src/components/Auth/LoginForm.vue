@@ -6,7 +6,7 @@
     label-position="top"
     class="login-form"
   >
-    <el-form-item label="身份" prop="loginRole">
+    <el-form-item label="身份">
       <el-select
         v-model="userStore.loginRole"
         placeholder="请选择您的身份"
@@ -50,6 +50,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 
 const userStore = useUserStore()
@@ -57,7 +58,6 @@ const formRef = ref(null)
 const loading = ref(false)
 
 const rules = {
-  loginRole: [{ required: true, message: '请选择身份', trigger: 'change' }],
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
     { min: 2, max: 20, message: '用户名长度在 2 到 20 个字符', trigger: 'blur' }
@@ -70,6 +70,12 @@ const rules = {
 
 const handleSubmit = async () => {
   if (!formRef.value) return
+
+  // 先手动验证身份选择
+  if (!userStore.loginRole) {
+    ElMessage.warning('请选择登录身份')
+    return
+  }
 
   await formRef.value.validate(async (valid) => {
     if (valid) {
