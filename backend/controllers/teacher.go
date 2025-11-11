@@ -144,24 +144,45 @@ func GetTeacherCourses(c *gin.Context) {
 	})
 }
 
+// ScheduleInput 课程时间输入
+type ScheduleInput struct {
+	DayOfWeek int    `json:"day_of_week" binding:"required,min=1,max=5"` // 星期几（1-5）
+	TimeSlot  int    `json:"time_slot" binding:"required,min=1,max=4"`   // 节次（1-4）
+	StartWeek int    `json:"start_week" binding:"required,min=1"`        // 开始周次
+	EndWeek   int    `json:"end_week" binding:"required,min=1"`          // 结束周次
+	Classroom string `json:"classroom"`                                  // 教室
+}
+
 // CreateCourse 创建课程
 // POST /api/teacher/courses/create/
-// 请求体: {name, description, capacity}
+// 请求体: {name, description, capacity, schedules}
 func CreateCourse(c *gin.Context) {
 	var req struct {
-		Name        string `json:"name" binding:"required"`        // 课程名称，必填
-		Description string `json:"description"`                    // 课程描述，可选
-		Capacity    int    `json:"capacity" binding:"required,gt=0"` // 容量，必填且大于0
+		Name        string          `json:"name" binding:"required"`          // 课程名称，必填
+		Description string          `json:"description"`                      // 课程描述，可选
+		Capacity    int             `json:"capacity" binding:"required,gt=0"` // 容量，必填且大于0
+		Schedules   []ScheduleInput `json:"schedules"`                        // 课程时间表，可选
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误: " + err.Error()})
 		return
+	}
+
+	// 验证周次范围
+	for _, schedule := range req.Schedules {
+		if schedule.EndWeek < schedule.StartWeek {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "结束周次不能小于开始周次"})
+			return
+		}
 	}
 
 	// 获取当前教师ID
 	teacherIDInterface, _ := c.Get("user_id")
 	teacherID := teacherIDInterface.(int)
+
+	// 开始事务
+	tx := config.DB.Begin()
 
 	// 创建课程记录
 	course := models.Course{
@@ -171,10 +192,31 @@ func CreateCourse(c *gin.Context) {
 		Capacity:    req.Capacity,
 	}
 
-	if err := config.DB.Create(&course).Error; err != nil {
+	if err := tx.Create(&course).Error; err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建课程失败"})
 		return
 	}
+
+	// 创建课程时间表
+	for _, scheduleInput := range req.Schedules {
+		schedule := models.CourseSchedule{
+			CourseID:  course.ID,
+			DayOfWeek: scheduleInput.DayOfWeek,
+			TimeSlot:  scheduleInput.TimeSlot,
+			StartWeek: scheduleInput.StartWeek,
+			EndWeek:   scheduleInput.EndWeek,
+			Classroom: scheduleInput.Classroom,
+		}
+		if err := tx.Create(&schedule).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "创建课程时间表失败"})
+			return
+		}
+	}
+
+	// 提交事务
+	tx.Commit()
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "创建成功",
@@ -189,20 +231,29 @@ func CreateCourse(c *gin.Context) {
 
 // UpdateCourse 修改课程
 // PUT /api/teacher/courses/:id/update/
-// 请求体: {name, description, capacity}
+// 请求体: {name, description, capacity, schedules}
 func UpdateCourse(c *gin.Context) {
 	// 从URL参数中获取课程ID
 	courseID := c.Param("id")
 
 	var req struct {
-		Name        string `json:"name" binding:"required"`        // 课程名称，必填
-		Description string `json:"description"`                    // 课程描述，可选
-		Capacity    int    `json:"capacity" binding:"required,gt=0"` // 容量，必填且大于0
+		Name        string          `json:"name" binding:"required"`          // 课程名称，必填
+		Description string          `json:"description"`                      // 课程描述，可选
+		Capacity    int             `json:"capacity" binding:"required,gt=0"` // 容量，必填且大于0
+		Schedules   []ScheduleInput `json:"schedules"`                        // 课程时间表，可选
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误: " + err.Error()})
 		return
+	}
+
+	// 验证周次范围
+	for _, schedule := range req.Schedules {
+		if schedule.EndWeek < schedule.StartWeek {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "结束周次不能小于开始周次"})
+			return
+		}
 	}
 
 	// 获取当前教师ID
@@ -230,15 +281,46 @@ func UpdateCourse(c *gin.Context) {
 		return
 	}
 
+	// 开始事务
+	tx := config.DB.Begin()
+
 	// 更新课程信息
 	course.Name = req.Name
 	course.Description = req.Description
 	course.Capacity = req.Capacity
 
-	if err := config.DB.Save(&course).Error; err != nil {
+	if err := tx.Save(&course).Error; err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "修改失败"})
 		return
 	}
+
+	// 删除旧的课程时间表
+	if err := tx.Where("course_id = ?", courseID).Delete(&models.CourseSchedule{}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除旧课程时间表失败"})
+		return
+	}
+
+	// 创建新的课程时间表
+	for _, scheduleInput := range req.Schedules {
+		schedule := models.CourseSchedule{
+			CourseID:  course.ID,
+			DayOfWeek: scheduleInput.DayOfWeek,
+			TimeSlot:  scheduleInput.TimeSlot,
+			StartWeek: scheduleInput.StartWeek,
+			EndWeek:   scheduleInput.EndWeek,
+			Classroom: scheduleInput.Classroom,
+		}
+		if err := tx.Create(&schedule).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "创建课程时间表失败"})
+			return
+		}
+	}
+
+	// 提交事务
+	tx.Commit()
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "修改成功",

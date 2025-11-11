@@ -439,3 +439,30 @@ func DropCourse(c *gin.Context) {
 		"message": "退课成功",
 	})
 }
+
+// GetScheduleTable 获取学生课表（二维数组）
+// GET /api/student/schedule/
+// 可选参数: ?week=1 (当前周次，用于过滤课程)
+func GetScheduleTable(c *gin.Context) {
+	// 获取当前学生ID
+	studentIDInterface, _ := c.Get("user_id")
+	studentID := studentIDInterface.(int)
+
+	// 获取可选的周次参数
+	var currentWeek int
+	weekParam := c.Query("week")
+	if weekParam != "" {
+		fmt.Sscanf(weekParam, "%d", &currentWeek)
+	}
+
+	// 调用工具函数获取课表
+	schedule, err := utils.GetStudentScheduleTable(studentID, currentWeek)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"schedule": schedule,
+	})
+}

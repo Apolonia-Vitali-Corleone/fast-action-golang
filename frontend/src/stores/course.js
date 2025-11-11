@@ -16,7 +16,12 @@ export const useCourseStore = defineStore('course', () => {
 
   // ========== 教师相关状态 ==========
   const teacherCourses = ref([]) // 教师的课程
-  const courseForm = ref({ name: '', description: '', capacity: 50 })
+  const courseForm = ref({
+    name: '',
+    description: '',
+    capacity: 50,
+    schedules: [] // 课程时间表
+  })
   const currentCourse = ref({}) // 当前查看的课程
   const courseStudents = ref({ students: [], total: 0 }) // 课程学生
   const showStudentsDialog = ref(false) // 学生列表弹窗
@@ -106,7 +111,12 @@ export const useCourseStore = defineStore('course', () => {
    */
   const openCreateDialog = () => {
     isEditMode.value = false
-    courseForm.value = { name: '', description: '', capacity: 50 }
+    courseForm.value = {
+      name: '',
+      description: '',
+      capacity: 50,
+      schedules: []
+    }
     showCourseDialog.value = true
   }
 
@@ -119,7 +129,8 @@ export const useCourseStore = defineStore('course', () => {
       id: course.id,
       name: course.name,
       description: course.description,
-      capacity: course.capacity
+      capacity: course.capacity,
+      schedules: course.schedules || []
     }
     showCourseDialog.value = true
   }
@@ -129,7 +140,12 @@ export const useCourseStore = defineStore('course', () => {
    */
   const closeCourseDialog = () => {
     showCourseDialog.value = false
-    courseForm.value = { name: '', description: '', capacity: 50 }
+    courseForm.value = {
+      name: '',
+      description: '',
+      capacity: 50,
+      schedules: []
+    }
   }
 
   /**
@@ -137,9 +153,14 @@ export const useCourseStore = defineStore('course', () => {
    */
   const createCourse = async () => {
     try {
-      await axios.post(`${API_BASE}/teacher/courses/create/`, courseForm.value)
+      await axios.post(`${API_BASE}/teacher/courses/create/`, {
+        name: courseForm.value.name,
+        description: courseForm.value.description,
+        capacity: courseForm.value.capacity,
+        schedules: courseForm.value.schedules
+      })
       ElMessage.success('创建成功')
-      courseForm.value = { name: '', description: '', capacity: 50 }
+      courseForm.value = { name: '', description: '', capacity: 50, schedules: [] }
       showCourseDialog.value = false
       await fetchTeacherCourses()
       return true
@@ -158,10 +179,11 @@ export const useCourseStore = defineStore('course', () => {
       await axios.put(`${API_BASE}/teacher/courses/${courseId}/update/`, {
         name: courseForm.value.name,
         description: courseForm.value.description,
-        capacity: courseForm.value.capacity
+        capacity: courseForm.value.capacity,
+        schedules: courseForm.value.schedules
       })
       ElMessage.success('修改成功')
-      courseForm.value = { name: '', description: '', capacity: 50 }
+      courseForm.value = { name: '', description: '', capacity: 50, schedules: [] }
       showCourseDialog.value = false
       await fetchTeacherCourses()
       return true
