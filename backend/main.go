@@ -94,6 +94,7 @@ func main() {
 			// 需要登录且是教师身份的接口
 			teacher.GET("/courses/", middleware.RequireAuth(), middleware.RequireTeacher(), controllers.GetTeacherCourses)              // 获取我的课程
 			teacher.POST("/courses/create/", middleware.RequireAuth(), middleware.RequireTeacher(), controllers.CreateCourse)           // 创建课程
+			teacher.PUT("/courses/:id/update/", middleware.RequireAuth(), middleware.RequireTeacher(), controllers.UpdateCourse)        // 修改课程
 			teacher.DELETE("/courses/:id/delete/", middleware.RequireAuth(), middleware.RequireTeacher(), controllers.DeleteCourse)     // 删除课程
 			teacher.GET("/courses/:id/students/", middleware.RequireAuth(), middleware.RequireTeacher(), controllers.GetCourseStudents) // 获取选课学生
 		}

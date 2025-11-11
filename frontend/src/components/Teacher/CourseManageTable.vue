@@ -3,13 +3,21 @@
     <template #header>
       <div class="table-header">
         <h2>我的课程</h2>
-        <el-button
-          type="primary"
-          :icon="Refresh"
-          circle
-          @click="handleRefresh"
-          :loading="loading"
-        />
+        <div class="header-actions">
+          <el-button
+            type="success"
+            @click="handleCreate"
+          >
+            创建课程
+          </el-button>
+          <el-button
+            type="primary"
+            :icon="Refresh"
+            circle
+            @click="handleRefresh"
+            :loading="loading"
+          />
+        </div>
       </div>
     </template>
 
@@ -41,7 +49,7 @@
         </template>
       </el-table-column>
       <el-table-column prop="created_at" label="创建时间" width="180" />
-      <el-table-column label="操作" width="200" fixed="right">
+      <el-table-column label="操作" width="280" fixed="right">
         <template #default="{ row }">
           <el-button
             type="primary"
@@ -50,6 +58,14 @@
             @click="handleViewStudents(row.id)"
           >
             查看学生
+          </el-button>
+          <el-button
+            type="warning"
+            size="small"
+            round
+            @click="handleEdit(row)"
+          >
+            编辑
           </el-button>
           <el-button
             type="danger"
@@ -66,12 +82,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
 import { useCourseStore } from '@/stores/course'
 
 const courseStore = useCourseStore()
 const loading = ref(false)
+let refreshTimer = null
 
 const handleRefresh = async () => {
   loading.value = true
@@ -82,6 +99,14 @@ const handleRefresh = async () => {
   }
 }
 
+const handleCreate = () => {
+  courseStore.openCreateDialog()
+}
+
+const handleEdit = (course) => {
+  courseStore.openEditDialog(course)
+}
+
 const handleViewStudents = async (courseId) => {
   await courseStore.viewStudents(courseId)
 }
@@ -90,8 +115,22 @@ const handleDelete = async (courseId) => {
   await courseStore.deleteCourse(courseId)
 }
 
+// 自动刷新功能
+const startAutoRefresh = () => {
+  refreshTimer = setInterval(() => {
+    courseStore.fetchTeacherCourses()
+  }, 30000) // 每30秒刷新一次
+}
+
 onMounted(() => {
   courseStore.fetchTeacherCourses()
+  startAutoRefresh()
+})
+
+onUnmounted(() => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+  }
 })
 </script>
 
@@ -115,6 +154,12 @@ onMounted(() => {
   font-size: 20px;
   font-weight: 700;
   color: #1c1c1c;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .courses-table {

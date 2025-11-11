@@ -187,6 +187,70 @@ func CreateCourse(c *gin.Context) {
 	})
 }
 
+// UpdateCourse 修改课程
+// PUT /api/teacher/courses/:id/update/
+// 请求体: {name, description, capacity}
+func UpdateCourse(c *gin.Context) {
+	// 从URL参数中获取课程ID
+	courseID := c.Param("id")
+
+	var req struct {
+		Name        string `json:"name" binding:"required"`        // 课程名称，必填
+		Description string `json:"description"`                    // 课程描述，可选
+		Capacity    int    `json:"capacity" binding:"required,gt=0"` // 容量，必填且大于0
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误"})
+		return
+	}
+
+	// 获取当前教师ID
+	teacherIDInterface, _ := c.Get("user_id")
+	teacherID := teacherIDInterface.(int)
+
+	// 查找课程
+	var course models.Course
+	if err := config.DB.First(&course, courseID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "课程不存在"})
+		return
+	}
+
+	// 检查课程是否属于当前教师
+	if course.TeacherID != teacherID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权修改此课程"})
+		return
+	}
+
+	// 检查容量是否小于已选人数
+	var enrolledCount int64
+	config.DB.Model(&models.Enrollment{}).Where("course_id = ?", courseID).Count(&enrolledCount)
+	if req.Capacity < int(enrolledCount) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "容量不能小于已选人数"})
+		return
+	}
+
+	// 更新课程信息
+	course.Name = req.Name
+	course.Description = req.Description
+	course.Capacity = req.Capacity
+
+	if err := config.DB.Save(&course).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "修改失败"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "修改成功",
+		"course": gin.H{
+			"id":          course.ID,
+			"name":        course.Name,
+			"description": course.Description,
+			"capacity":    course.Capacity,
+		},
+	})
+}
+
 // DeleteCourse 删除课程
 // DELETE /api/teacher/courses/:id/delete/
 // 删除指定ID的课程（必须是该教师创建的）
