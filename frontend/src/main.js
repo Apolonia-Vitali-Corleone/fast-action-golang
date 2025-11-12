@@ -5,6 +5,8 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
+// 导入Element Plus样式
+import 'element-plus/dist/index.css'
 
 // 创建Pinia实例
 const pinia = createPinia()
