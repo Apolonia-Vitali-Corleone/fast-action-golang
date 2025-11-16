@@ -9,7 +9,9 @@ import (
 type Student struct {
 	ID        int       `gorm:"primaryKey;autoIncrement" json:"id"`           // 主键，自增
 	Username  string    `gorm:"type:varchar(100);uniqueIndex" json:"username"` // 用户名，唯一索引
+	Password  string    `gorm:"type:varchar(255)" json:"-"`                    // 密码，json序列化时忽略（安全）
 	Phone     string    `gorm:"type:varchar(20);uniqueIndex" json:"phone"`     // 手机号，唯一索引
+	Email     string    `gorm:"type:varchar(255);uniqueIndex" json:"email"`    // 邮箱，唯一索引
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`              // 创建时间，自动填充
 }
 
