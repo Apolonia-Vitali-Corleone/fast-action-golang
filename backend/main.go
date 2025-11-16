@@ -69,6 +69,10 @@ func main() {
 	// API基础路径组
 	api := r.Group("/api")
 	{
+		// ---------- 验证码相关路由（公开接口） ----------
+		api.GET("/captcha/", controllers.GetCaptcha)      // 获取图形验证码
+		api.POST("/sms/send/", controllers.SendSMSCode)   // 发送短信验证码
+
 		// ---------- 学生相关路由 ----------
 		student := api.Group("/student")
 		{
