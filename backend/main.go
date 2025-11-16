@@ -78,11 +78,11 @@ func main() {
 
 			// 需要登录且是学生身份的接口
 			// 使用RequireAuth中间件验证登录，RequireStudent验证学生身份
-			student.GET("/courses/", middleware.RequireAuth(), middleware.RequireStudent(), controllers.GetCourses)         // 获取所有课程
-			student.GET("/my-courses/", middleware.RequireAuth(), middleware.RequireStudent(), controllers.GetMyCourses)    // 获取我的课程
-			student.GET("/schedule/", middleware.RequireAuth(), middleware.RequireStudent(), controllers.GetScheduleTable)  // 获取课表
-			student.POST("/enroll/", middleware.RequireAuth(), middleware.RequireStudent(), controllers.EnrollCourse)       // 选课
-			student.POST("/drop/", middleware.RequireAuth(), middleware.RequireStudent(), controllers.DropCourse)           // 退课
+			student.GET("/courses/", middleware.RequireAuth(), middleware.RequireStudent(), controllers.GetCourses)        // 获取所有课程
+			student.GET("/my-courses/", middleware.RequireAuth(), middleware.RequireStudent(), controllers.GetMyCourses)   // 获取我的课程
+			student.GET("/schedule/", middleware.RequireAuth(), middleware.RequireStudent(), controllers.GetScheduleTable) // 获取课表
+			student.POST("/enroll/", middleware.RequireAuth(), middleware.RequireStudent(), controllers.EnrollCourse)      // 选课
+			student.POST("/drop/", middleware.RequireAuth(), middleware.RequireStudent(), controllers.DropCourse)          // 退课
 		}
 
 		// ---------- 教师相关路由 ----------

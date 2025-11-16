@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/redis/go-redis/v9/maintnotifications"
 )
 
 // RedisClient 全局Redis客户端实例
@@ -23,23 +24,30 @@ type RedisConfig struct {
 // InitRedis 初始化Redis连接
 // 参数:
 //   - cfg: Redis配置信息
+//
 // 返回:
 //   - error: 连接失败时的错误信息
 func InitRedis(cfg RedisConfig) error {
 	// 创建Redis客户端
 	RedisClient = redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", cfg.Host, cfg.Port), // Redis地址
-		Password: cfg.Password,                              // 密码
-		DB:       cfg.DB,                                    // 使用的数据库
+		Password: cfg.Password,                             // 密码
+		DB:       cfg.DB,                                   // 使用的数据库
+
+		MaintNotificationsConfig: &maintnotifications.Config{
+			Mode: maintnotifications.ModeDisabled, // 显式禁用（核心配置）
+			// 其他可选字段（禁用后无需配置，默认即可）：
+			// Interval: 10 * time.Second, // 通知查询间隔（禁用后无效）
+		},
 
 		// 连接池配置
-		PoolSize:     100,              // 连接池最大连接数（支持高并发）
-		MinIdleConns: 10,               // 最小空闲连接数
-		MaxRetries:   3,                // 最大重试次数
-		DialTimeout:  5 * time.Second,  // 连接超时
-		ReadTimeout:  3 * time.Second,  // 读超时
-		WriteTimeout: 3 * time.Second,  // 写超时
-		PoolTimeout:  4 * time.Second,  // 连接池超时
+		PoolSize:     100,             // 连接池最大连接数（支持高并发）
+		MinIdleConns: 10,              // 最小空闲连接数
+		MaxRetries:   3,               // 最大重试次数
+		DialTimeout:  5 * time.Second, // 连接超时
+		ReadTimeout:  3 * time.Second, // 读超时
+		WriteTimeout: 3 * time.Second, // 写超时
+		PoolTimeout:  4 * time.Second, // 连接池超时
 	})
 
 	// 测试连接

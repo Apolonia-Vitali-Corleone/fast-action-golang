@@ -6,6 +6,7 @@ require (
 	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-gonic/gin v1.10.0
 	github.com/golang-jwt/jwt/v5 v5.2.0
+	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/redis/go-redis/v9 v9.16.0
 	golang.org/x/crypto v0.24.0
 	gorm.io/driver/mysql v1.5.7
