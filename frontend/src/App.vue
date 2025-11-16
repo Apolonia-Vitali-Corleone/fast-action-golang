@@ -1,38 +1,12 @@
 <template>
   <div id="app">
-    <!-- 未登录：显示认证页面 -->
-    <AuthView v-if="!userStore.currentUser" />
-
-    <!-- 已登录：根据角色显示不同的界面 -->
-    <StudentView v-else-if="userStore.currentUser.role === 'student'" />
-    <TeacherView v-else-if="userStore.currentUser.role === 'teacher'" />
+    <router-view />
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
-import { useUserStore } from './stores/user'
-import { useCourseStore } from './stores/course'
-import AuthView from './views/AuthView.vue'
-import StudentView from './views/StudentView.vue'
-import TeacherView from './views/TeacherView.vue'
-
-const userStore = useUserStore()
-const courseStore = useCourseStore()
-
-onMounted(async () => {
-  // 尝试从localStorage恢复登录状态
-  const restored = await userStore.restoreSession()
-
-  if (restored && userStore.currentUser) {
-    // 根据角色加载相应的数据
-    if (userStore.currentUser.role === 'student') {
-      await courseStore.fetchAvailableCourses()
-    } else if (userStore.currentUser.role === 'teacher') {
-      await courseStore.fetchTeacherCourses()
-    }
-  }
-})
+// App.vue 现在只负责渲染路由视图
+// 路由守卫会处理认证和导航逻辑
 </script>
 
 <style>
