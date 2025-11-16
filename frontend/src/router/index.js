@@ -13,6 +13,12 @@ const routes = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/tlogin',
+    name: 'TeacherLogin',
+    component: () => import('@/views/TeacherLoginView.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/register',
     name: 'Register',
     component: () => import('@/views/RegisterView.vue'),
