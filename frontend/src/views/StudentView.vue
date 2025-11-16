@@ -34,16 +34,34 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import CourseList from '@/components/Student/CourseList.vue'
 import MyCourseTable from '@/components/Student/MyCourseTable.vue'
 import ScheduleTable from '@/components/Student/ScheduleTable.vue'
 
+const router = useRouter()
 const userStore = useUserStore()
 const activeTab = ref('schedule')
 
 const handleLogout = async () => {
   await userStore.logout()
+  // 跳转到登录页
+  router.push('/login')
+}
+</script>
+  // 跳转到登录页
+  router.push('/login')
+}
+const handleLogout = async () => {
+  await userStore.logout()
+  // 跳转到登录页
+  router.push('/login')
+}
+const handleLogout = async () => {
+  await userStore.logout()
+  // 跳转到登录页
+  router.push('/login')
 }
 </script>
 

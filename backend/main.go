@@ -106,18 +106,7 @@ func main() {
 
 		// ---------- 通用路由 ----------
 		// 获取当前登录用户信息（需要JWT认证）
-		api.GET("/current-user/", middleware.JWTAuth(), func(c *gin.Context) {
-			// 从上下文获取用户信息（由JWT中间件设置）
-			userID, _ := c.Get("user_id")
-			role, _ := c.Get("role")
-
-			c.JSON(200, gin.H{
-				"user": gin.H{
-					"id":   userID,
-					"role": role,
-				},
-			})
-		})
+		api.GET("/current-user/", middleware.JWTAuth(), controllers.GetCurrentUser)
 
 		// 退出登录（JWT无需服务端处理，由前端删除token即可）
 		api.POST("/logout/", func(c *gin.Context) {

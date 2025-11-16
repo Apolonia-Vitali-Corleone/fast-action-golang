@@ -20,7 +20,9 @@ import LoginForm from '@/components/Auth/LoginForm.vue'
 
 const router = useRouter()
 
-const handleLoginSuccess = () => {
+const handleLoginSuccess = (user) => {
+  // 保存用户信息到store（如果使用）或直接跳转
+  // 由于登录表单已经保存了token，这里直接跳转即可
   router.push('/')
 }
 </script>
