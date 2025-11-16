@@ -16,18 +16,30 @@ import (
 
 // StudentRegister 学生注册
 // POST /api/student/register/
-// 请求体: {username, password, email}
+// 请求体: {username, phone, sms_code}
 func StudentRegister(c *gin.Context) {
 	// 定义接收JSON数据的结构体
 	var req struct {
 		Username string `json:"username" binding:"required"` // 用户名，必填
-		Password string `json:"password" binding:"required"` // 密码，必填
-		Email    string `json:"email" binding:"required"`    // 邮箱，必填
+		Phone    string `json:"phone" binding:"required"`    // 手机号，必填
+		SMSCode  string `json:"sms_code" binding:"required"` // 短信验证码，必填
 	}
 
 	// 绑定JSON数据到结构体
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误"})
+		return
+	}
+
+	// 验证手机号格式
+	if len(req.Phone) != 11 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "手机号格式不正确"})
+		return
+	}
+
+	// 验证短信验证码
+	if !utils.VerifySMSCode(req.Phone, req.SMSCode, "register") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "短信验证码错误或已过期"})
 		return
 	}
 
@@ -39,25 +51,16 @@ func StudentRegister(c *gin.Context) {
 		return
 	}
 
-	// 检查邮箱是否已存在
-	if err := config.DB.Where("email = ?", req.Email).First(&existingStudent).Error; err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "邮箱已被使用"})
-		return
-	}
-
-	// 使用bcrypt加密密码
-	// bcrypt.DefaultCost是默认的加密强度
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "密码加密失败"})
+	// 检查手机号是否已存在
+	if err := config.DB.Where("phone = ?", req.Phone).First(&existingStudent).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "手机号已被注册"})
 		return
 	}
 
 	// 创建新学生记录
 	student := models.Student{
 		Username: req.Username,
-		Password: string(hashedPassword), // 存储加密后的密码
-		Email:    req.Email,
+		Phone:    req.Phone,
 	}
 
 	// 保存到数据库
@@ -66,19 +69,34 @@ func StudentRegister(c *gin.Context) {
 		return
 	}
 
-	// 注册成功
+	// 注册成功，生成JWT Token
+	token, err := utils.GenerateToken(student.ID, "student")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "生成token失败"})
+		return
+	}
+
+	// 返回token和用户信息
 	c.JSON(http.StatusOK, gin.H{
 		"message": "注册成功",
+		"token":   token,
+		"user": gin.H{
+			"id":       student.ID,
+			"username": student.Username,
+			"phone":    student.Phone,
+			"role":     "student",
+		},
 	})
 }
 
 // StudentLogin 学生登录
 // POST /api/student/login/
-// 请求体: {username, password}
+// 请求体: {phone, sms_code}
+// 注意: 登录前需要先通过图形验证码验证，然后才能获取短信验证码
 func StudentLogin(c *gin.Context) {
 	var req struct {
-		Username string `json:"username" binding:"required"`
-		Password string `json:"password" binding:"required"`
+		Phone   string `json:"phone" binding:"required"`    // 手机号
+		SMSCode string `json:"sms_code" binding:"required"` // 短信验证码
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -86,17 +104,22 @@ func StudentLogin(c *gin.Context) {
 		return
 	}
 
-	// 查找学生
-	var student models.Student
-	if err := config.DB.Where("username = ?", req.Username).First(&student).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "用户名或密码错误"})
+	// 验证手机号格式
+	if len(req.Phone) != 11 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "手机号格式不正确"})
 		return
 	}
 
-	// 验证密码
-	// CompareHashAndPassword比较加密后的密码和明文密码
-	if err := bcrypt.CompareHashAndPassword([]byte(student.Password), []byte(req.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "用户名或密码错误"})
+	// 验证短信验证码
+	if !utils.VerifySMSCode(req.Phone, req.SMSCode, "login") {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "短信验证码错误或已过期"})
+		return
+	}
+
+	// 查找学生
+	var student models.Student
+	if err := config.DB.Where("phone = ?", req.Phone).First(&student).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "该手机号未注册"})
 		return
 	}
 
@@ -114,7 +137,7 @@ func StudentLogin(c *gin.Context) {
 		"user": gin.H{
 			"id":       student.ID,
 			"username": student.Username,
-			"email":    student.Email,
+			"phone":    student.Phone,
 			"role":     "student",
 		},
 	})
