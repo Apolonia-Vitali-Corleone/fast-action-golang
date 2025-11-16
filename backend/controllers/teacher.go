@@ -425,3 +425,48 @@ func GetCourseStudents(c *gin.Context) {
 		"total":    len(students), // 总人数
 	})
 }
+
+
+// GetCurrentUser 获取当前登录用户的完整信息
+// GET /api/current-user/
+// 返回当前用户的完整信息（包括username, email/phone等）
+func GetCurrentUser(c *gin.Context) {
+	// 从上下文获取用户信息（由JWT中间件设置）
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
+	// 根据角色查询不同的表
+	if role == "student" {
+		var student models.Student
+		if err := config.DB.First(&student, userID).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"user": gin.H{
+				"id":       student.ID,
+				"username": student.Username,
+				"phone":    student.Phone,
+				"role":     "student",
+			},
+		})
+	} else if role == "teacher" {
+		var teacher models.Teacher
+		if err := config.DB.First(&teacher, userID).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"user": gin.H{
+				"id":       teacher.ID,
+				"username": teacher.Username,
+				"email":    teacher.Email,
+				"role":     "teacher",
+			},
+		})
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的用户角色"})
+	}
+}

@@ -20,8 +20,8 @@ import RegisterForm from '@/components/Auth/RegisterForm.vue'
 
 const router = useRouter()
 
-const handleRegisterSuccess = () => {
-  // 注册成功后，会在 store 中自动登录，这里直接跳转到主页
+const handleRegisterSuccess = (user) => {
+  // 注册成功后，已经保存了token，这里直接跳转到主页
   router.push('/')
 }
 </script>

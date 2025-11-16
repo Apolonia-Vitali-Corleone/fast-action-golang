@@ -30,15 +30,19 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import CreateCourseForm from '@/components/Teacher/CreateCourseForm.vue'
 import CourseManageTable from '@/components/Teacher/CourseManageTable.vue'
 import StudentListDialog from '@/components/Teacher/StudentListDialog.vue'
 
+const router = useRouter()
 const userStore = useUserStore()
 
 const handleLogout = async () => {
   await userStore.logout()
+  // 跳转到登录页
+  router.push('/login')
 }
 </script>
 

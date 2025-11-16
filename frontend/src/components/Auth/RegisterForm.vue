@@ -1,73 +1,95 @@
 <template>
-  <el-form
-    ref="formRef"
-    :model="userStore.authForm"
-    :rules="rules"
-    label-position="top"
-    class="register-form"
-  >
-    <el-form-item label="用户名" prop="username">
-      <el-input
-        v-model="userStore.authForm.username"
-        placeholder="请输入用户名"
-        size="large"
-        clearable
-      />
-    </el-form-item>
-
-    <el-form-item label="邮箱" prop="email">
-      <el-input
-        v-model="userStore.authForm.email"
-        type="email"
-        placeholder="请输入邮箱"
-        size="large"
-        clearable
-      />
-    </el-form-item>
-
-    <el-form-item label="密码" prop="password">
-      <el-input
-        v-model="userStore.authForm.password"
-        type="password"
-        placeholder="请输入密码（至少6位）"
-        size="large"
-        show-password
-      />
-    </el-form-item>
-
+  <div class="register-container">
+    <!-- 身份选择 -->
     <el-form-item label="身份" prop="role">
       <el-select
-        v-model="userStore.authForm.role"
+        v-model="registerRole"
         placeholder="请选择您的身份"
         size="large"
+        @change="handleRoleChange"
       >
         <el-option label="学生" value="student" />
         <el-option label="老师" value="teacher" />
       </el-select>
     </el-form-item>
 
-    <el-button
-      type="primary"
-      size="large"
-      class="submit-btn"
-      :loading="loading"
-      @click="handleSubmit"
+    <!-- 学生注册表单（手机号+短信验证码） -->
+    <StudentRegisterForm
+      v-if="registerRole === 'student'"
+      @register-success="handleRegisterSuccess"
+    />
+
+    <!-- 教师注册表单（用户名+密码+邮箱） -->
+    <el-form
+      v-else-if="registerRole === 'teacher'"
+      ref="formRef"
+      :model="teacherForm"
+      :rules="teacherRules"
+      label-position="top"
+      class="teacher-form"
     >
-      注册
-    </el-button>
-  </el-form>
+      <el-form-item label="用户名" prop="username">
+        <el-input
+          v-model="teacherForm.username"
+          placeholder="请输入用户名"
+          size="large"
+          clearable
+        />
+      </el-form-item>
+
+      <el-form-item label="邮箱" prop="email">
+        <el-input
+          v-model="teacherForm.email"
+          type="email"
+          placeholder="请输入邮箱"
+          size="large"
+          clearable
+        />
+      </el-form-item>
+
+      <el-form-item label="密码" prop="password">
+        <el-input
+          v-model="teacherForm.password"
+          type="password"
+          placeholder="请输入密码（至少6位）"
+          size="large"
+          show-password
+        />
+      </el-form-item>
+
+      <el-button
+        type="primary"
+        size="large"
+        class="submit-btn"
+        :loading="loading"
+        @click="handleTeacherRegister"
+      >
+        注册
+      </el-button>
+    </el-form>
+  </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useUserStore } from '@/stores/user'
+import { ref, reactive } from 'vue'
+import axios from 'axios'
+import { ElMessage } from 'element-plus'
+import StudentRegisterForm from './StudentRegisterForm.vue'
+
+const API_BASE = 'http://localhost:8000/api'
 
 const emit = defineEmits(['register-success'])
-const userStore = useUserStore()
+const registerRole = ref('')
 const formRef = ref(null)
 const loading = ref(false)
 
-const rules = {
+const teacherForm = reactive({
+  username: '',
+  email: '',
+  password: ''
+})
+
+const teacherRules = {
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
     { min: 2, max: 20, message: '用户名长度在 2 到 20 个字符', trigger: 'blur' }
@@ -79,21 +101,53 @@ const rules = {
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
     { min: 6, message: '密码长度不少于 6 个字符', trigger: 'blur' }
-  ],
-  role: [{ required: true, message: '请选择身份', trigger: 'change' }]
+  ]
 }
 
-const handleSubmit = async () => {
+const handleRoleChange = () => {
+  // 切换身份时清空表单
+  if (formRef.value) {
+    formRef.value.resetFields()
+  }
+  teacherForm.username = ''
+  teacherForm.email = ''
+  teacherForm.password = ''
+}
+
+const handleRegisterSuccess = (user) => {
+  emit('register-success', user)
+}
+
+const handleTeacherRegister = async () => {
   if (!formRef.value) return
 
   await formRef.value.validate(async (valid) => {
     if (valid) {
       loading.value = true
       try {
-        const success = await userStore.register()
-        if (success) {
-          emit('register-success')
+        // 教师注册不直接返回token和用户信息，需要注册后再登录
+        await axios.post(`${API_BASE}/teacher/register/`, {
+          username: teacherForm.username,
+          password: teacherForm.password,
+          email: teacherForm.email
+        })
+
+        ElMessage.success('注册成功，正在为您自动登录...')
+
+        // 自动登录
+        const loginRes = await axios.post(`${API_BASE}/teacher/login/`, {
+          username: teacherForm.username,
+          password: teacherForm.password
+        })
+
+        // 保存token
+        if (loginRes.data.token) {
+          localStorage.setItem('token', loginRes.data.token)
         }
+
+        emit('register-success', loginRes.data.user)
+      } catch (error) {
+        ElMessage.error(error.response?.data?.error || '注册失败')
       } finally {
         loading.value = false
       }
@@ -103,7 +157,11 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-.register-form {
+.register-container {
+  width: 100%;
+}
+
+.teacher-form {
   width: 100%;
 }
 
