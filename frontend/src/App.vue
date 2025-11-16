@@ -55,6 +55,8 @@ body {
 
 #app {
   height: 100%;
+  width: 100%;
+  overflow: hidden;
 }
 
 /* Element Plus全局样式覆盖 - OnlyFans风格 */
