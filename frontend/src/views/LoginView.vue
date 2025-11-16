@@ -2,9 +2,9 @@
   <div class="auth-container">
     <div class="auth-card">
       <h1 class="title">选课系统</h1>
-      <p class="subtitle">欢迎回来</p>
+      <p class="subtitle">学生登录</p>
 
-      <LoginForm @login-success="handleLoginSuccess" />
+      <StudentLoginForm @login-success="handleLoginSuccess" />
 
       <div class="auth-footer">
         <span class="footer-text">还没有账号？</span>
@@ -16,7 +16,7 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
-import LoginForm from '@/components/Auth/LoginForm.vue'
+import StudentLoginForm from '@/components/Auth/StudentLoginForm.vue'
 
 const router = useRouter()
 
