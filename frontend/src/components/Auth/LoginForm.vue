@@ -53,6 +53,7 @@ import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 
+const emit = defineEmits(['login-success'])
 const userStore = useUserStore()
 const formRef = ref(null)
 const loading = ref(false)
@@ -81,7 +82,10 @@ const handleSubmit = async () => {
     if (valid) {
       loading.value = true
       try {
-        await userStore.login()
+        const success = await userStore.login()
+        if (success) {
+          emit('login-success')
+        }
       } finally {
         loading.value = false
       }

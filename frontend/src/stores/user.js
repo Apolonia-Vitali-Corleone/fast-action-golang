@@ -26,7 +26,7 @@ axios.interceptors.request.use(
   }
 )
 
-// 配置Axios响应拦截器 - 处理token刷新
+// 配置Axios响应拦截器 - 处理token刷新和401错误
 axios.interceptors.response.use(
   (response) => {
     const newToken = response.headers['x-new-token']
@@ -37,10 +37,11 @@ axios.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
+      // 静默清除 token 和用户状态，不显示提示
       localStorage.removeItem('token')
       const userStore = useUserStore()
       userStore.currentUser = null
-      ElMessage.error('登录已过期，请重新登录')
+      // 路由守卫会自动处理跳转到登录页
     }
     return Promise.reject(error)
   }
@@ -89,7 +90,7 @@ export const useUserStore = defineStore('user', () => {
   }
 
   /**
-   * 注册
+   * 注册 - 注册成功后自动登录
    */
   const register = async () => {
     try {
@@ -98,15 +99,42 @@ export const useUserStore = defineStore('user', () => {
         return false
       }
 
-      const endpoint = authForm.value.role === 'student' ? '/student/register/' : '/teacher/register/'
+      // 保存注册信息用于自动登录
+      const username = authForm.value.username
+      const password = authForm.value.password
+      const role = authForm.value.role
+
+      const endpoint = role === 'student' ? '/student/register/' : '/teacher/register/'
       await axios.post(`${API_BASE}${endpoint}`, {
         username: authForm.value.username,
         password: authForm.value.password,
         email: authForm.value.email
       })
 
-      ElMessage.success('注册成功，请登录')
+      // 注册成功，自动登录
+      ElMessage.success('注册成功')
+
+      // 准备登录数据
+      authForm.value = { username, password, email: '', role: '' }
+      loginRole.value = role
+
+      // 自动登录
+      const loginEndpoint = role === 'student' ? '/student/login/' : '/teacher/login/'
+      const loginRes = await axios.post(`${API_BASE}${loginEndpoint}`, {
+        username,
+        password
+      })
+
+      if (loginRes.data.token) {
+        localStorage.setItem('token', loginRes.data.token)
+      }
+
+      currentUser.value = loginRes.data.user
+
+      // 清空表单
       authForm.value = { username: '', password: '', email: '', role: '' }
+      loginRole.value = ''
+
       return true
     } catch (error) {
       ElMessage.error(error.response?.data?.error || '注册失败')
