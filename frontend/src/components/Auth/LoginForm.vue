@@ -132,40 +132,5 @@ const handleTeacherLogin = async () => {
 </script>
 
 <style scoped>
-.login-container {
-  width: 100%;
-}
 
-.teacher-form {
-  width: 100%;
-}
-
-.submit-btn {
-  width: 100%;
-  margin-top: 10px;
-  border-radius: 12px;
-  font-weight: 600;
-}
-
-:deep(.el-input__wrapper),
-:deep(.el-select__wrapper) {
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 175, 240, 0.1);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-:deep(.el-input__wrapper:hover),
-:deep(.el-select__wrapper:hover) {
-  box-shadow: 0 4px 16px rgba(0, 175, 240, 0.15);
-}
-
-:deep(.el-input__wrapper.is-focus),
-:deep(.el-select__wrapper.is-focused) {
-  box-shadow: 0 4px 16px rgba(0, 175, 240, 0.25);
-}
-
-:deep(.el-form-item__label) {
-  font-weight: 600;
-  color: #1c1c1c;
-}
 </style>

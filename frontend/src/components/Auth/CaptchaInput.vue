@@ -65,39 +65,5 @@ defineExpose({ refreshCaptcha })
 </script>
 
 <style scoped>
-.captcha-container {
-  width: 100%;
-}
 
-.captcha-image-wrapper {
-  width: 120px;
-  height: 40px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f5f7fa;
-  transition: all 0.3s;
-}
-
-.captcha-image-wrapper:hover {
-  background: #e4e7ed;
-}
-
-.captcha-image {
-  width: 100%;
-  height: 100%;
-}
-
-.captcha-hint {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 4px;
-}
-
-:deep(.el-input-group__append) {
-  padding: 0;
-  background: transparent;
-  border: none;
-}
 </style>

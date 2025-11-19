@@ -6,6 +6,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
+
 // 导入Element Plus样式
 import 'element-plus/dist/index.css'
 
