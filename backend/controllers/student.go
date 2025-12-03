@@ -93,25 +93,35 @@ func StudentRegister(c *gin.Context) {
 // 请求体: {phone, sms_code}
 // 注意: 登录前需要先通过图形验证码验证，然后才能获取短信验证码
 func StudentLogin(c *gin.Context) {
+	//var req struct {
+	//	Phone   string `json:"phone" binding:"required"`    // 手机号
+	//	SMSCode string `json:"sms_code" binding:"required"` // 短信验证码
+	//}
+	//
+	//if err := c.ShouldBindJSON(&req); err != nil {
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误"})
+	//	return
+	//}
+	//
+	//// 验证手机号格式
+	//if len(req.Phone) != 11 {
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": "手机号格式不正确"})
+	//	return
+	//}
+	//
+	//// 验证短信验证码
+	//if !utils.VerifySMSCode(req.Phone, req.SMSCode, "login") {
+	//	c.JSON(http.StatusUnauthorized, gin.H{"error": "短信验证码错误或已过期"})
+	//	return
+	//}
+
 	var req struct {
-		Phone   string `json:"phone" binding:"required"`    // 手机号
-		SMSCode string `json:"sms_code" binding:"required"` // 短信验证码
+		Phone    string `json:"phone" binding:"required"`    // 手机号
+		Password string `json:"password" binding:"required"` // 短信验证码
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误"})
-		return
-	}
-
-	// 验证手机号格式
-	if len(req.Phone) != 11 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "手机号格式不正确"})
-		return
-	}
-
-	// 验证短信验证码
-	if !utils.VerifySMSCode(req.Phone, req.SMSCode, "login") {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "短信验证码错误或已过期"})
 		return
 	}
 

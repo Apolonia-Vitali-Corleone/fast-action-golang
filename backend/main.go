@@ -47,6 +47,7 @@ func main() {
 	r := gin.New()
 
 	// ========== 5. 配置四层中间件链（按顺序） ==========
+
 	// 第一层：Recovery - 捕获panic，防止服务崩溃
 	r.Use(middleware.Recovery())
 
@@ -58,7 +59,8 @@ func main() {
 
 	// 第四层：CORS - 跨域资源共享
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},                             // 允许的来源（前端地址）
+		AllowOrigins: []string{"http://localhost:5173"}, // 允许的来源（前端地址）
+		// AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},           // 允许的HTTP方法
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"}, // 允许的请求头（包含Authorization）
 		ExposeHeaders:    []string{"X-New-Token"},                                       // 允许前端读取的响应头（用于Token自动刷新）
@@ -70,15 +72,15 @@ func main() {
 	api := r.Group("/api")
 	{
 		// ---------- 验证码相关路由（公开接口） ----------
-		api.GET("/captcha/", controllers.GetCaptcha)      // 获取图形验证码
-		api.POST("/sms/send/", controllers.SendSMSCode)   // 发送短信验证码
+		api.GET("/captcha/", controllers.GetCaptcha)    // 获取图形验证码
+		api.POST("/sms/send/", controllers.SendSMSCode) // 发送短信验证码
 
 		// ---------- 学生相关路由 ----------
 		student := api.Group("/student")
 		{
 			// 公开接口（无需登录）
-			student.POST("/register/", controllers.StudentRegister) // 学生注册
-			student.POST("/login/", controllers.StudentLogin)       // 学生登录
+			student.POST("/register", controllers.StudentRegister) // 学生注册
+			student.POST("/login", controllers.StudentLogin)       // 学生登录
 
 			// 需要登录且是学生身份的接口
 			// 使用RequireAuth中间件验证登录，RequireStudent验证学生身份

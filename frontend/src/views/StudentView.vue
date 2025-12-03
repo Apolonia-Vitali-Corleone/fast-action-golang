@@ -50,20 +50,7 @@ const handleLogout = async () => {
   router.push('/login')
 }
 </script>
-  // 跳转到登录页
-  router.push('/login')
-}
-const handleLogout = async () => {
-  await userStore.logout()
-  // 跳转到登录页
-  router.push('/login')
-}
-const handleLogout = async () => {
-  await userStore.logout()
-  // 跳转到登录页
-  router.push('/login')
-}
-</script>
+
 
 <style scoped>
 .student-container {
